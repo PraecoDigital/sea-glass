@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { AppData, User } from './types/index.ts';
-import { getStoredData, saveData } from './utils/storage.ts';
+import { AppData } from './types/index.ts';
+import { getStoredData, saveData, initializeData } from './utils/storage.ts';
+import { getCurrentUser, onAuthStateChange, saveUserData, getUserData } from './utils/supabase.ts';
 import Onboarding from './components/Onboarding.tsx';
 import Dashboard from './components/Dashboard.tsx';
 import Login from './components/Login.tsx';
@@ -11,46 +12,128 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    console.log('🔍 App: Loading data from localStorage...');
-    const storedData = getStoredData();
-    if (storedData) {
-      console.log('✅ App: Found stored data:', storedData);
-      setData(storedData);
-    } else {
-      console.log('ℹ️ App: No stored data found, starting onboarding');
-    }
-    setIsLoading(false);
+    const initializeApp = async () => {
+      try {
+        // Check for authenticated user
+        const user = await getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
+          
+          // Try to load user data from Supabase
+          try {
+            const userData = await getUserData(user.id);
+            if (userData) {
+              setData(userData);
+            } else {
+              // Fallback to localStorage
+              const storedData = getStoredData();
+              if (storedData) {
+                setData(storedData);
+              }
+            }
+          } catch (error) {
+            console.log('No user data in Supabase, checking localStorage...');
+            const storedData = getStoredData();
+            if (storedData) {
+              setData(storedData);
+            }
+          }
+        } else {
+          // Check localStorage for demo data
+          const storedData = getStoredData();
+          if (storedData) {
+            setData(storedData);
+          }
+        }
+      } catch (error) {
+        console.log('No authenticated user, checking localStorage...');
+        const storedData = getStoredData();
+        if (storedData) {
+          setData(storedData);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initializeApp();
+
+    // Set up auth state listener
+    const { data: { subscription } } = onAuthStateChange((user) => {
+      setCurrentUser(user);
+      if (!user) {
+        setData(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handleOnboardingComplete = (userData: AppData) => {
-    setData(userData);
-    saveData(userData);
-  };
-
-  const handleLogin = (email: string, password: string) => {
-    // For demo purposes, we'll just check if the user exists in stored data
-    const storedData = getStoredData();
-    if (storedData && storedData.user.email === email) {
-      setCurrentUser(storedData.user);
-      setData(storedData);
-      setShowLogin(false);
-    } else {
-      alert('Invalid credentials. Please try again or sign up.');
+  const handleOnboardingComplete = async (userData: AppData) => {
+    // Update user data with current user info
+    const updatedUserData = {
+      ...userData,
+      user: {
+        id: currentUser?.id || userData.user.id,
+        email: currentUser?.email || userData.user.email,
+        name: currentUser?.user_metadata?.name || userData.user.name,
+        createdAt: currentUser?.created_at || userData.user.createdAt,
+      },
+    };
+    
+    setData(updatedUserData);
+    saveData(updatedUserData);
+    
+    // Save to Supabase if user is authenticated
+    if (currentUser) {
+      try {
+        await saveUserData(currentUser.id, updatedUserData);
+      } catch (error) {
+        console.error('Failed to save to Supabase:', error);
+      }
     }
   };
 
-  const handleSignUp = (user: User) => {
+  const handleLogin = async (user: any) => {
+    setCurrentUser(user);
+    setShowLogin(false);
+    
+    // Try to load user data from Supabase
+    try {
+      const userData = await getUserData(user.id);
+      if (userData) {
+        setData(userData);
+      } else {
+        // User has no data, will go through onboarding
+        setData(null);
+      }
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      // User has no data, will go through onboarding
+      setData(null);
+    }
+  };
+
+  const handleSignUp = async (user: any) => {
     setCurrentUser(user);
     setShowSignUp(false);
     // User will go through onboarding after signup
   };
 
-  const handleDataUpdate = (updatedData: AppData) => {
+  const handleDataUpdate = async (updatedData: AppData) => {
     setData(updatedData);
     saveData(updatedData);
+    
+    // Save to Supabase if user is authenticated
+    if (currentUser) {
+      try {
+        await saveUserData(currentUser.id, updatedData);
+      } catch (error) {
+        console.error('Failed to save to Supabase:', error);
+      }
+    }
   };
 
   const handleReset = () => {
@@ -128,7 +211,7 @@ const App: React.FC = () => {
     return <Onboarding onComplete={handleOnboardingComplete} user={currentUser} />;
   }
 
-  return <Dashboard data={data} onDataUpdate={handleDataUpdate} onReset={handleReset} />;
+  return <Dashboard data={data} onDataUpdate={handleDataUpdate} onReset={handleReset} onSignOut={() => setCurrentUser(null)} />;
 };
 
 export default App;

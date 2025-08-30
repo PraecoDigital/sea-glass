@@ -57,6 +57,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, user }) => {
         min: parseFloat(investmentMin),
         max: parseFloat(investmentMax),
       },
+      benchmarkPercentages: {
+        livingExpenses: 70,
+        liabilities: 20,
+        investments: 10,
+      },
       fixedCosts,
       currentBudget: {
         month: new Date().toISOString().slice(0, 7),
@@ -111,6 +116,28 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, user }) => {
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                 Your Income & Investment Goals
               </h2>
+            </div>
+
+            {/* Benchmark Information */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6">
+              <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Financial Health Benchmarks</h3>
+              <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                BadBudget uses the 70/20/10 rule to help you maintain healthy financial habits:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div className="bg-blue-100 dark:bg-blue-800 p-2 rounded">
+                  <span className="font-semibold text-blue-900 dark:text-blue-100">70%</span>
+                  <span className="text-blue-800 dark:text-blue-200"> Living Expenses</span>
+                </div>
+                <div className="bg-blue-100 dark:bg-blue-800 p-2 rounded">
+                  <span className="font-semibold text-blue-900 dark:text-blue-100">20%</span>
+                  <span className="text-blue-800 dark:text-blue-200"> Liabilities</span>
+                </div>
+                <div className="bg-blue-100 dark:bg-blue-800 p-2 rounded">
+                  <span className="font-semibold text-blue-900 dark:text-blue-100">10%</span>
+                  <span className="text-blue-800 dark:text-blue-200"> Investments</span>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -362,9 +389,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, user }) => {
 
               <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
                 <h3 className="font-medium text-purple-900 dark:text-purple-100 mb-2">What's Next?</h3>
-                <p className="text-sm text-purple-800 dark:text-purple-200">
+                <p className="text-sm text-purple-800 dark:text-purple-200 mb-3">
                   You can now track your daily expenses and manage your budget. 
                   Use the configuration page to customize your subcategories and manage your budget settings.
+                </p>
+                <p className="text-sm text-purple-800 dark:text-purple-200">
+                  <strong>Benchmark Tracking:</strong> Your dashboard will show how your spending compares to the 70/20/10 rule, 
+                  helping you maintain healthy financial habits.
                 </p>
               </div>
             </div>

@@ -59,6 +59,11 @@ export const initializeData = (): AppData => {
     },
     spendingHistory: [],
     customSubcategories: [],
+    benchmarkPercentages: {
+      livingExpenses: 70,
+      liabilities: 20,
+      investments: 10,
+    },
   };
 };
 

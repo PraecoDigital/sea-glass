@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader } from 'lucide-react';
+import { signIn } from '../utils/supabase.ts';
 
 interface LoginProps {
-  onLogin: (email: string, password: string) => void;
+  onLogin: (user: any) => void;
   onShowSignUp: () => void;
 }
 
@@ -13,6 +14,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onShowSignUp }) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -31,12 +33,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, onShowSignUp }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    onLogin(formData.email, formData.password);
+    setIsLoading(true);
+    try {
+      const { user } = await signIn(formData.email, formData.password);
+      onLogin(user);
+    } catch (error: any) {
+      setErrors({ general: error.message });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -100,12 +110,27 @@ const Login: React.FC<LoginProps> = ({ onLogin, onShowSignUp }) => {
               )}
             </div>
 
+            {/* Error Message */}
+            {errors.general && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400">{errors.general}</p>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full btn-primary"
+              disabled={isLoading}
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              Sign In
+              {isLoading ? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </button>
 
             {/* Sign Up Link */}

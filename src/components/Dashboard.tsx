@@ -11,10 +11,12 @@ import {
   CreditCard,
   Moon,
   Sun,
-  Settings
+  Settings,
+  LogOut
 } from 'lucide-react';
 import { AppData, DailyExpense, CategoryTotals } from '../types/index.ts';
 import { saveData } from '../utils/storage.ts';
+import { signOut } from '../utils/supabase.ts';
 import { LIVING_EXPENSE_SUBCATEGORIES, LIABILITY_SUBCATEGORIES, INVESTMENT_SUBCATEGORIES } from '../types/index.ts';
 import Configuration from './Configuration.tsx';
 
@@ -22,9 +24,10 @@ interface DashboardProps {
   data: AppData;
   onDataUpdate: (data: AppData) => void;
   onReset: () => void;
+  onSignOut?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) => {
+const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset, onSignOut }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingFixedCost, setEditingFixedCost] = useState<string | null>(null);
@@ -61,6 +64,17 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) =>
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      if (onSignOut) {
+        onSignOut();
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
     }
   };
 
@@ -108,23 +122,23 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) =>
 
   const categoryTotals = calculateCategoryTotals();
 
-  // Calculate total variable costs (all expenses classified as variable)
+  // Calculate total variable costs (excluding investments)
   const calculateTotalVariableCosts = (): number => {
     let totalVariable = 0;
 
-    // Add variable fixed costs
+    // Add variable fixed costs (excluding investments)
     data.fixedCosts
-      .filter(cost => cost.classification === 'variable')
+      .filter(cost => cost.classification === 'variable' && cost.type !== 'investment')
       .forEach(cost => {
         totalVariable += cost.amount;
       });
 
-    // Add variable expenses from current month
+    // Add variable expenses from current month (excluding investments)
     const currentMonth = new Date().toISOString().slice(0, 7);
     const currentMonthHistory = data.spendingHistory.find(h => h.month === currentMonth);
     if (currentMonthHistory) {
       currentMonthHistory.dailyExpenses
-        .filter(expense => expense.classification === 'variable')
+        .filter(expense => expense.classification === 'variable' && expense.category !== 'Investments')
         .forEach(expense => {
           totalVariable += expense.amount;
         });
@@ -139,16 +153,16 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) =>
     .filter(cost => cost.classification === 'fixed' && cost.type === 'living-expense')
     .reduce((sum, cost) => sum + cost.amount, 0);
 
-  // Get current month's spending (only variable expenses)
+  // Get current month's spending (only variable expenses, excluding investments)
   const currentMonth = new Date().toISOString().slice(0, 7);
   const currentMonthHistory = data.spendingHistory.find(h => h.month === currentMonth);
   const currentMonthSpending = currentMonthHistory?.dailyExpenses
-    .filter(expense => expense.classification === 'variable')
+    .filter(expense => expense.classification === 'variable' && expense.category !== 'Investments')
     .reduce((sum, expense) => sum + expense.amount, 0) || 0;
 
-  // Calculate spending by category for charts (only variable expenses)
+  // Calculate spending by category for charts (only variable expenses, excluding investments)
   const spendingByCategory = currentMonthHistory?.dailyExpenses
-    .filter(expense => expense.classification === 'variable')
+    .filter(expense => expense.classification === 'variable' && expense.category !== 'Investments')
     .reduce((acc, expense) => {
       acc[expense.subCategory] = (acc[expense.subCategory] || 0) + expense.amount;
       return acc;
@@ -355,6 +369,13 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) =>
               >
                 <Settings className="w-5 h-5" />
               </button>
+              <button
+                onClick={handleSignOut}
+                className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -493,8 +514,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) =>
         <div className="card mb-8">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Variable Costs Management</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Variable Fixed Costs */}
-            {data.fixedCosts.filter(cost => cost.classification === 'variable').map((variableCost) => (
+            {/* Variable Fixed Costs (excluding investments) */}
+            {data.fixedCosts.filter(cost => cost.classification === 'variable' && cost.type !== 'investment').map((variableCost) => (
               <div key={variableCost.id} className={`p-4 rounded-lg ${
                 variableCost.type === 'liability' 
                   ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' 
@@ -561,9 +582,9 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) =>
               </div>
             ))}
             
-            {/* Variable Daily Expenses */}
+            {/* Variable Daily Expenses (excluding investments) */}
             {currentMonthHistory?.dailyExpenses
-              .filter(expense => expense.classification === 'variable')
+              .filter(expense => expense.classification === 'variable' && expense.category !== 'Investments')
               .map((expense) => (
                 <div key={expense.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
@@ -611,8 +632,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) =>
                 </div>
               ))}
             
-            {data.fixedCosts.filter(cost => cost.classification === 'variable').length === 0 && 
-             (!currentMonthHistory || currentMonthHistory.dailyExpenses.filter(expense => expense.classification === 'variable').length === 0) && (
+            {data.fixedCosts.filter(cost => cost.classification === 'variable' && cost.type !== 'investment').length === 0 && 
+             (!currentMonthHistory || currentMonthHistory.dailyExpenses.filter(expense => expense.classification === 'variable' && expense.category !== 'Investments').length === 0) && (
               <p className="text-sm text-gray-500 dark:text-gray-400 col-span-full text-center py-4">
                 No variable costs configured. Add them during onboarding or as daily expenses.
               </p>
@@ -898,21 +919,117 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset }) =>
           </div>
         </div>
 
-        {/* Category Totals and Breakdown */}
+        {/* Category Totals and Benchmark Comparison */}
         <div className="card mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Category Totals & Breakdown</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Category Totals & Benchmark Comparison</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
               <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Living Expenses</h4>
               <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{formatCurrency(categoryTotals.livingExpenses)}</p>
+              <div className="mt-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-blue-700 dark:text-blue-300">Your %</span>
+                  <span className="text-blue-700 dark:text-blue-300">Benchmark</span>
+                </div>
+                <div className="flex justify-between text-sm font-semibold">
+                  <span className="text-blue-900 dark:text-blue-100">
+                    {((categoryTotals.livingExpenses / data.income) * 100).toFixed(1)}%
+                  </span>
+                  <span className="text-blue-900 dark:text-blue-100">
+                    {data.benchmarkPercentages.livingExpenses}%
+                  </span>
+                </div>
+                <div className="mt-1 h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min(((categoryTotals.livingExpenses / data.income) * 100), 100)}%` 
+                    }}
+                  ></div>
+                </div>
+                <p className={`text-xs mt-1 ${
+                  (categoryTotals.livingExpenses / data.income) * 100 > data.benchmarkPercentages.livingExpenses
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-green-600 dark:text-green-400'
+                }`}>
+                  {((categoryTotals.livingExpenses / data.income) * 100) > data.benchmarkPercentages.livingExpenses
+                    ? `⚠️ ${(((categoryTotals.livingExpenses / data.income) * 100) - data.benchmarkPercentages.livingExpenses).toFixed(1)}% above benchmark`
+                    : `✅ ${(data.benchmarkPercentages.livingExpenses - ((categoryTotals.livingExpenses / data.income) * 100)).toFixed(1)}% below benchmark`
+                  }
+                </p>
+              </div>
             </div>
             <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
               <h4 className="font-medium text-red-900 dark:text-red-100 mb-2">Liabilities</h4>
               <p className="text-2xl font-bold text-red-900 dark:text-red-100">{formatCurrency(categoryTotals.liabilities)}</p>
+              <div className="mt-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-red-700 dark:text-red-300">Your %</span>
+                  <span className="text-red-700 dark:text-red-300">Benchmark</span>
+                </div>
+                <div className="flex justify-between text-sm font-semibold">
+                  <span className="text-red-900 dark:text-red-100">
+                    {((categoryTotals.liabilities / data.income) * 100).toFixed(1)}%
+                  </span>
+                  <span className="text-red-900 dark:text-red-100">
+                    {data.benchmarkPercentages.liabilities}%
+                  </span>
+                </div>
+                <div className="mt-1 h-2 bg-red-200 dark:bg-red-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-red-600 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min(((categoryTotals.liabilities / data.income) * 100), 100)}%` 
+                    }}
+                  ></div>
+                </div>
+                <p className={`text-xs mt-1 ${
+                  (categoryTotals.liabilities / data.income) * 100 > data.benchmarkPercentages.liabilities
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-green-600 dark:text-green-400'
+                }`}>
+                  {((categoryTotals.liabilities / data.income) * 100) > data.benchmarkPercentages.liabilities
+                    ? `⚠️ ${(((categoryTotals.liabilities / data.income) * 100) - data.benchmarkPercentages.liabilities).toFixed(1)}% above benchmark`
+                    : `✅ ${(data.benchmarkPercentages.liabilities - ((categoryTotals.liabilities / data.income) * 100)).toFixed(1)}% below benchmark`
+                  }
+                </p>
+              </div>
             </div>
             <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
               <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-2">Investments</h4>
               <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{formatCurrency(categoryTotals.investments)}</p>
+              <div className="mt-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-purple-700 dark:text-purple-300">Your %</span>
+                  <span className="text-purple-700 dark:text-purple-300">Benchmark</span>
+                </div>
+                <div className="flex justify-between text-sm font-semibold">
+                  <span className="text-purple-900 dark:text-purple-100">
+                    {((categoryTotals.investments / data.income) * 100).toFixed(1)}%
+                  </span>
+                  <span className="text-purple-900 dark:text-purple-100">
+                    {data.benchmarkPercentages.investments}%
+                  </span>
+                </div>
+                <div className="mt-1 h-2 bg-purple-200 dark:bg-purple-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-purple-600 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min(((categoryTotals.investments / data.income) * 100), 100)}%` 
+                    }}
+                  ></div>
+                </div>
+                <p className={`text-xs mt-1 ${
+                  (categoryTotals.investments / data.income) * 100 < data.benchmarkPercentages.investments
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-green-600 dark:text-green-400'
+                }`}>
+                  {((categoryTotals.investments / data.income) * 100) < data.benchmarkPercentages.investments
+                    ? `⚠️ ${(data.benchmarkPercentages.investments - ((categoryTotals.investments / data.income) * 100)).toFixed(1)}% below benchmark`
+                    : `✅ ${(((categoryTotals.investments / data.income) * 100) - data.benchmarkPercentages.investments).toFixed(1)}% above benchmark`
+                  }
+                </p>
+              </div>
             </div>
           </div>
           

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { User as UserType } from '../types/index.ts';
+import { User, Mail, Lock, Eye, EyeOff, Loader } from 'lucide-react';
+import { signUp } from '../utils/supabase.ts';
 
 interface SignUpProps {
-  onSignUp: (user: UserType) => void;
+  onSignUp: (user: any) => void;
   onBackToLogin: () => void;
 }
 
@@ -17,6 +17,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onBackToLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -45,19 +46,20 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onBackToLogin }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    const user: UserType = {
-      id: 'user_' + Math.random().toString(36).substr(2, 9),
-      email: formData.email,
-      name: formData.name,
-      createdAt: new Date().toISOString(),
-    };
-
-    onSignUp(user);
+    setIsLoading(true);
+    try {
+      const { user } = await signUp(formData.email, formData.password, formData.name);
+      onSignUp(user);
+    } catch (error: any) {
+      setErrors({ general: error.message });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -168,12 +170,27 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onBackToLogin }) => {
               )}
             </div>
 
+            {/* Error Message */}
+            {errors.general && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400">{errors.general}</p>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full btn-primary"
+              disabled={isLoading}
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              Create Account
+              {isLoading ? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                'Create Account'
+              )}
             </button>
 
             {/* Back to Login */}

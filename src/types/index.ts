@@ -39,6 +39,12 @@ export interface User {
   createdAt: string;
 }
 
+export interface BenchmarkPercentages {
+  livingExpenses: number;
+  liabilities: number;
+  investments: number;
+}
+
 export interface AppData {
   user: User;
   income: number;
@@ -47,6 +53,7 @@ export interface AppData {
   currentBudget: CurrentBudget;
   spendingHistory: SpendingHistory[];
   customSubcategories: CustomSubcategory[];
+  benchmarkPercentages: BenchmarkPercentages;
 }
 
 export type ExpenseType = 'living-expense' | 'liability' | 'investment';
