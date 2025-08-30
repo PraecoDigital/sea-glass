@@ -1,0 +1,8 @@
+Mods: AUG 30 2025
+
+Allow the user to create and edit as well as to select the sub categories they want to be visible in the menu
+Add Investments as an option along with Living Expense and Liability
+Remove the AI component
+Show totals for the top level categories and give a breakdown for each sub catgeory
+Allow users to sign up
+The gear icon takes you back to the configuration steps. On the configuration page allow the user to go back to the dashboard
