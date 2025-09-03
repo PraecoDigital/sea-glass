@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Plus, Eye, EyeOff, Trash2, Edit3 } from 'lucide-react';
-import { AppData, CustomSubcategory, ExpenseType, LIVING_EXPENSE_SUBCATEGORIES, LIABILITY_SUBCATEGORIES, INVESTMENT_SUBCATEGORIES } from '../types/index.ts';
+import { AppData, CustomSubcategory, ExpenseType, LIVING_EXPENSE_SUBCATEGORIES, LIABILITY_SUBCATEGORIES, INVESTMENT_SUBCATEGORIES } from '../types/index';
 
 interface ConfigurationProps {
   data: AppData;

@@ -14,11 +14,11 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
-import { AppData, DailyExpense, CategoryTotals } from '../types/index.ts';
-import { saveData } from '../utils/storage.ts';
-import { signOut } from '../utils/supabase.ts';
-import { LIVING_EXPENSE_SUBCATEGORIES, LIABILITY_SUBCATEGORIES, INVESTMENT_SUBCATEGORIES } from '../types/index.ts';
-import Configuration from './Configuration.tsx';
+import { AppData, DailyExpense, CategoryTotals } from '../types/index';
+import { saveData } from '../utils/storage';
+import { signOut } from '../utils/supabase';
+import { LIVING_EXPENSE_SUBCATEGORIES, LIABILITY_SUBCATEGORIES, INVESTMENT_SUBCATEGORIES } from '../types/index';
+import Configuration from './Configuration';
 
 interface DashboardProps {
   data: AppData;

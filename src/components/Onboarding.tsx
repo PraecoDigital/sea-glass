@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DollarSign, Target, CreditCard, Home, TrendingUp } from 'lucide-react';
-import { AppData, FixedCost, ExpenseType, User } from '../types/index.ts';
-import { LIVING_EXPENSE_SUBCATEGORIES, LIABILITY_SUBCATEGORIES, INVESTMENT_SUBCATEGORIES } from '../types/index.ts';
+import { AppData, FixedCost, ExpenseType, User } from '../types/index';
+import { LIVING_EXPENSE_SUBCATEGORIES, LIABILITY_SUBCATEGORIES, INVESTMENT_SUBCATEGORIES } from '../types/index';
 
 interface OnboardingProps {
   onComplete: (data: AppData) => void;

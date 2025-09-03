@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, Loader } from 'lucide-react';
-import { signUp } from '../utils/supabase.ts';
+import { signUp } from '../utils/supabase';
 
 interface SignUpProps {
   onSignUp: (user: any) => void;

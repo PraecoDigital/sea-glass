@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { AppData } from './types/index.ts';
-import { getStoredData, saveData, initializeData } from './utils/storage.ts';
-import { getCurrentUser, onAuthStateChange, saveUserData, getUserData } from './utils/supabase.ts';
-import Onboarding from './components/Onboarding.tsx';
-import Dashboard from './components/Dashboard.tsx';
-import Login from './components/Login.tsx';
-import SignUp from './components/SignUp.tsx';
+import { AppData } from './types/index';
+import { getStoredData, saveData, initializeData } from './utils/storage';
+import { getCurrentUser, onAuthStateChange, saveUserData, getUserData, testSupabaseConnection } from './utils/supabase';
+import Onboarding from './components/Onboarding';
+import Dashboard from './components/Dashboard';
+import Login from './components/Login';
+import SignUp from './components/SignUp';
 
 const App: React.FC = () => {
   const [data, setData] = useState<AppData | null>(null);
@@ -17,6 +17,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // Test Supabase connection first
+        await testSupabaseConnection();
+        
         // Check for authenticated user
         const user = await getCurrentUser();
         if (user) {
