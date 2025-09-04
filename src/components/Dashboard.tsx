@@ -153,6 +153,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset, onSi
     .filter(cost => cost.classification === 'fixed' && cost.type === 'living-expense')
     .reduce((sum, cost) => sum + cost.amount, 0);
 
+  // Calculate total allocated amount
+  const totalFixedCosts = data.fixedCosts.reduce((sum, cost) => sum + cost.amount, 0);
+  const totalAllocated = totalFixedCosts + data.currentBudget.variableAllocated + data.currentBudget.investmentAllocated;
+  const unallocatedBalance = data.income - totalAllocated;
+
   // Get current month's spending (only variable expenses, excluding investments)
   const currentMonth = new Date().toISOString().slice(0, 7);
   const currentMonthHistory = data.spendingHistory.find(h => h.month === currentMonth);
@@ -392,6 +397,17 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onDataUpdate, onReset, onSi
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Income</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.income)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {unallocatedBalance > 0 ? (
+                    <span className="text-orange-600 dark:text-orange-400">
+                      {formatCurrency(unallocatedBalance)} unallocated
+                    </span>
+                  ) : (
+                    <span className="text-green-600 dark:text-green-400">
+                      100% allocated
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           </div>
